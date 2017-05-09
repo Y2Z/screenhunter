@@ -127,7 +127,7 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
     } else if (target.type == PNG_COLOR_TYPE_RGBA) {
         target.colors = 4;
         // Give a warning about non-opaque pixels
-        fprintf(stderr, "%s: alpha-channel found, clickhunter will treat this image as an RGB instead\n", target.name);
+        fprintf(stderr, "%s: alpha-channel found, clickhunter will treat all non-opaque pixels as positive matches\n", target.name);
     } else {
         fprintf(stderr, "%s: color type of input file must be PNG_COLOR_TYPE_RGB (%d)"
                 " or PNG_COLOR_TYPE_RGBA (%d)"
@@ -173,13 +173,18 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
     png_byte *target_row;
     png_byte *target_pixel;
     uchar *screenshot_pixel;
+    uchar target_has_alpha = target.colors - 3;
     ulong so_far_so_good = 0;
 
     for (uint y = 0 ; y < screenshot->height - target.height ; y++) {
         for (uint x = 0 ; x < screenshot->width - target.width ; x++) {
             screenshot_pixel = (uchar *)&(screenshot->data[screenshot->bytes_per_line * y + screenshot->bits_per_pixel * x / NBBY]);
 
-            if (screenshot_pixel[2] == (*target.rows)[0] && screenshot_pixel[1] == (*target.rows)[1] && screenshot_pixel[0] == (*target.rows)[2]) {
+            if ((target_has_alpha && (*target.rows)[3] < 255) ||
+                (screenshot_pixel[2] == (*target.rows)[0] &&
+                 screenshot_pixel[1] == (*target.rows)[1] &&
+                 screenshot_pixel[0] == (*target.rows)[2])
+            ) {
                 so_far_so_good = 1;
 
                 for (uint ty = 0 ; ty < target.height && so_far_so_good ; ty++) {
@@ -190,7 +195,11 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
 
                         screenshot_pixel = (uchar *)&(screenshot->data[screenshot->bytes_per_line * (y+ty) + screenshot->bits_per_pixel * (x+tx) / NBBY]);
 
-                        if (screenshot_pixel[2] == target_pixel[0] && screenshot_pixel[1] == target_pixel[1] && screenshot_pixel[0] == target_pixel[2]) {
+                        if ((target_has_alpha && target_pixel[3] < 255) ||
+                            (screenshot_pixel[2] == target_pixel[0] &&
+                             screenshot_pixel[1] == target_pixel[1] &&
+                             screenshot_pixel[0] == target_pixel[2])
+                        ) {
                             so_far_so_good++;
 
                             if (so_far_so_good == target.width * target.height) {
