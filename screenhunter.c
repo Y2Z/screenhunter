@@ -26,7 +26,7 @@ typedef struct {
     png_structp png;  /* png struct pointer */
 } Target;
 
-void msleep (int milliseconds)
+void msleep(int milliseconds)
 {
     struct timespec ts;
 
@@ -36,7 +36,7 @@ void msleep (int milliseconds)
     nanosleep(&ts, NULL);
 }
 
-void click (Display *display, Window *window, int button)
+void click(Display *display, Window *window, int button)
 {
     XEvent event;
 
@@ -76,7 +76,7 @@ void click (Display *display, Window *window, int button)
     XFlush(display);
 }
 
-void seekandclick (char *file_name, Display *display, Window window, XImage *screenshot)
+void seekandclick(char *file_name, Display *display, Window window, XImage *screenshot)
 {
     FILE *fp;
     Target target;
@@ -126,7 +126,7 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
         target.colors = 3;
     } else if (target.type == PNG_COLOR_TYPE_RGBA) {
         target.colors = 4;
-        // Give a warning about non-opaque pixels
+        /* Give a warning about non-opaque pixels */
         fprintf(stderr, "%s: alpha-channel found, clickhunter will treat all non-opaque pixels as positive matches\n", target.name);
     } else {
         fprintf(stderr, "%s: color type of input file must be PNG_COLOR_TYPE_RGB (%d)"
@@ -140,7 +140,7 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
     }
 
     if (target.info->bit_depth != 8) {
-        fprintf (stderr, "%s: incorrect bit depth of %d (expected 8)\n", target.name, target.info->bit_depth);
+        fprintf(stderr, "%s: incorrect bit depth of %d (expected 8)\n", target.name, target.info->bit_depth);
         goto exit;
     }
 
@@ -153,9 +153,9 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
     target.width = png_get_image_width(target.png, target.info);
     target.height = png_get_image_height(target.png, target.info);
 
-    target.rows = (png_bytep *)malloc(sizeof(png_bytep) * target.height);
+    target.rows = (png_bytep*)malloc(sizeof(png_bytep) * target.height);
     for (uint target_y = 0 ; target_y < target.height ; target_y++) {
-        target.rows[target_y] = (png_byte *)malloc(png_get_rowbytes(target.png, target.info));
+        target.rows[target_y] = (png_byte*)malloc(png_get_rowbytes(target.png, target.info));
     }
 
     png_read_image(target.png, target.rows);
@@ -178,7 +178,7 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
 
     for (uint y = 0 ; y < screenshot->height - target.height ; y++) {
         for (uint x = 0 ; x < screenshot->width - target.width ; x++) {
-            screenshot_pixel = (uchar *)&(screenshot->data[screenshot->bytes_per_line * y + screenshot->bits_per_pixel * x / NBBY]);
+            screenshot_pixel = (uchar*)&(screenshot->data[screenshot->bytes_per_line * y + screenshot->bits_per_pixel * x / NBBY]);
 
             if ((target_has_alpha && (*target.rows)[3] < 255) ||
                 (screenshot_pixel[2] == (*target.rows)[0] &&
@@ -193,7 +193,7 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
                     for (uint tx = 0 ; tx < target.width && so_far_so_good ; tx++) {
                         target_pixel = &(target_row[tx * target.colors]);
 
-                        screenshot_pixel = (uchar *)&(screenshot->data[screenshot->bytes_per_line * (y+ty) + screenshot->bits_per_pixel * (x+tx) / NBBY]);
+                        screenshot_pixel = (uchar*)&(screenshot->data[screenshot->bytes_per_line * (y+ty) + screenshot->bits_per_pixel * (x+tx) / NBBY]);
 
                         if ((target_has_alpha && target_pixel[3] < 255) ||
                             (screenshot_pixel[2] == target_pixel[0] &&
@@ -215,25 +215,26 @@ void seekandclick (char *file_name, Display *display, Window window, XImage *scr
         }
     }
 
-    for (uint j = 0 ; j < target.height ; j++)
+    for (uint j = 0 ; j < target.height ; j++) {
         free(target.rows[j]);
+    }
     free(target.rows);
 
 exit:
-    png_destroy_read_struct (&target.png, &target.info, NULL);
+    png_destroy_read_struct(&target.png, &target.info, NULL);
     fclose(fp);
 }
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
     if (argc < 2) {
-        // No arguments given
+        /* No arguments given */
         fprintf(stderr, "Usage: %s button.png [icon.png [...]]\n", argv[0]);
         return -1;
     }
 
     Display *display = XOpenDisplay(0);
-    Window window = DefaultRootWindow(display); // RootWindow(display, DefaultScreen(display));
+    Window window = DefaultRootWindow(display);
     XWindowAttributes windowAttrs;
     XImage *screenshot;
 
@@ -244,7 +245,9 @@ int main (int argc, char **argv)
 
     XGetWindowAttributes(display, window, &windowAttrs);
 
-    screenshot = XGetImage(display, window, 0, 0, windowAttrs.width, windowAttrs.height, AllPlanes, ZPixmap);
+    screenshot = XGetImage(display, window, 0, 0,
+                           windowAttrs.width, windowAttrs.height,
+                           AllPlanes, ZPixmap);
 
     for (int i = 1 ; i < argc ; i++) {
         seekandclick(argv[i], display, window, screenshot);
