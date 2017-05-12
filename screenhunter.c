@@ -180,6 +180,7 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
     png_byte *target_pixel;
     uchar *screenshot_pixel;
     uchar target_has_alpha = target.colors - 3;
+    ulong target_amount_of_pixels = target.width * target.height;
     ulong so_far_so_good = 0;
     ulong found = 0;
 
@@ -209,8 +210,8 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
                         ) {
                             so_far_so_good++;
 
-                            if (so_far_so_good == target.width * target.height) {
-                                XWarpPointer(display, None, window, 0, 0, 0, 0, x + (target.width / 2), y + (target.height / 2));
+                            if (so_far_so_good == target_amount_of_pixels) {
+                                XWarpPointer(display, None, window, 0, 0, 0, 0, target.width / 2 + x, target.height / 2 + y);
                                 click(display, &window, Button1);
                                 found++;
                             }
@@ -228,6 +229,7 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
         XWarpPointer(display, None, window, 0, 0, 0, 0, root_x, root_y);
     }
 
+    /* Clean-up */
     for (uint j = 0 ; j < target.height ; j++) {
         free(target.rows[j]);
     }
