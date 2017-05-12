@@ -81,6 +81,9 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
     FILE *fp;
     Target target;
     uchar header[8];
+    Window root, child;
+    int root_x, root_y, win_x, win_y;
+    uint mask;
 
     target.name = basename(file_name);
 
@@ -160,6 +163,9 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
 
     png_read_image(target.png, target.rows);
 
+    /* Get current cursor position */
+    XQueryPointer(display, window, &root, &child, &root_x, &root_y, &win_x, &win_y, &mask);
+
 /*
  *
  * 1. loop through screen's pixels, searching for the first pixel of target PNG image
@@ -175,6 +181,7 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
     uchar *screenshot_pixel;
     uchar target_has_alpha = target.colors - 3;
     ulong so_far_so_good = 0;
+    ulong found = 0;
 
     for (uint y = 0 ; y < screenshot->height - target.height ; y++) {
         for (uint x = 0 ; x < screenshot->width - target.width ; x++) {
@@ -205,6 +212,7 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
                             if (so_far_so_good == target.width * target.height) {
                                 XWarpPointer(display, None, window, 0, 0, 0, 0, x + (target.width / 2), y + (target.height / 2));
                                 click(display, &window, Button1);
+                                found++;
                             }
                         } else {
                             so_far_so_good = 0;
@@ -213,6 +221,11 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
                 }
             }
         }
+    }
+
+    /* Return the cursor to its original position if it has been moved */
+    if (found) {
+        XWarpPointer(display, None, window, 0, 0, 0, 0, root_x, root_y);
     }
 
     for (uint j = 0 ; j < target.height ; j++) {
