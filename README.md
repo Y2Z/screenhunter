@@ -20,11 +20,11 @@ In such a case the cursor will move and point to the matching area, but the clic
 Different programs may render the same image differently (scaling, anti-aliasing, etc).  
 Basically you want to make sure to take the screenshot of the desired element using the program you want to automate.
 
-Even if one pixel mismatches between what's on the screen and the target's image, screenhunter the click won't occur.  
+Even if one pixel mismatches between what's on the screen and the target's image, the click won't occur.  
 Therefore it's better to use the smallest yet unique part of the element you wish to make your computer click on.
 
-If the provided target image source contains opaque pixels, screenhunter will count them as positvie matches.  
-This lets you seek non-rectangular areas on your screen.
+If the provided target image source contains transparent pixels, screenhunter will count them as positvie matches.  
+This lets the program seek non-rectangular areas on the screen.
 
 ### uninstall
 `sudo make uninstall`
