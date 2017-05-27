@@ -76,7 +76,7 @@ void click(Display *display, Window *window, int button)
     XFlush(display);
 }
 
-void seekandclick(char *file_name, Display *display, Window window, XImage *screenshot)
+char seekandclick(char *file_name, Display *display, Window window, XImage *screenshot)
 {
     FILE *fp;
     Target target;
@@ -84,18 +84,21 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
     Window root, child;
     int root_x, root_y, win_x, win_y;
     uint mask;
+    char res = 0;
 
     target.name = basename(file_name);
 
     /* Open file */
     if (!(fp = fopen(file_name, "rb"))) {
         fprintf(stderr, "%s: could not be opened for reading", target.name);
+        res = -1;
         goto exit;
     }
 
     fread(header, 1, 8, fp);
     if (png_sig_cmp(header, 0, 8)) {
         fprintf(stderr, "%s: not a PNG file", target.name);
+        res = -1;
         goto exit;
     }
 
@@ -104,17 +107,20 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
 
     if (!target.png) {
         fprintf(stderr, "%s: png_create_read_struct failed", target.name);
+        res = -1;
         goto exit;
     }
 
     target.info = png_create_info_struct(target.png);
     if (!target.info) {
         fprintf(stderr, "%s: png_create_info_struct failed", target.name);
+        res = -1;
         goto exit;
     }
 
     if (setjmp(png_jmpbuf(target.png))) {
         fprintf(stderr, "%s: error during init_io", target.name);
+        res = -1;
         goto exit;
     }
 
@@ -139,17 +145,20 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
                 PNG_COLOR_TYPE_RGB,
                 PNG_COLOR_TYPE_RGBA,
                 target.type);
+        res = -1;
         goto exit;
     }
 
     if (target.info->bit_depth != 8) {
         fprintf(stderr, "%s: incorrect bit depth of %d (expected 8)\n", target.name, target.info->bit_depth);
+        res = -1;
         goto exit;
     }
 
     /* Read file */
     if (setjmp(png_jmpbuf(target.png))) {
         fprintf(stderr, "%s: error during read_image", target.name);
+        res = -1;
         goto exit;
     }
 
@@ -227,6 +236,7 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
     /* Return the cursor to its original position if it has been moved */
     if (found) {
         XWarpPointer(display, None, window, 0, 0, 0, 0, root_x, root_y);
+        res = 1;
     }
 
     /* Clean-up */
@@ -238,10 +248,15 @@ void seekandclick(char *file_name, Display *display, Window window, XImage *scre
 exit:
     png_destroy_read_struct(&target.png, &target.info, NULL);
     fclose(fp);
+
+    return res;
 }
 
 int main(int argc, char **argv)
 {
+    char ret = 0;
+    char res = 0;
+
     if (argc < 2) {
         /* No arguments given */
         fprintf(stderr, "Usage: %s button.png [icon.png [...]]\n", argv[0]);
@@ -265,12 +280,19 @@ int main(int argc, char **argv)
                            AllPlanes, ZPixmap);
 
     for (int i = 1 ; i < argc ; i++) {
-        seekandclick(argv[i], display, window, screenshot);
+        ret = seekandclick(argv[i], display, window, screenshot);
+
+        if (ret > 0) {
+            res = 1;
+        } else if (ret < 0) {
+            res = -1;
+            break;
+        }
     }
 
     XFree(screenshot);
     XFlush(display);
     XCloseDisplay(display);
 
-    return 0;
+    return res;
 }
