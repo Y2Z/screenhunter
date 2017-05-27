@@ -136,7 +136,7 @@ char seekandclick(char *file_name, Display *display, Window window, XImage *scre
     } else if (target.type == PNG_COLOR_TYPE_RGBA) {
         target.colors = 4;
         /* Give a warning about non-opaque pixels */
-        fprintf(stderr, "%s: alpha-channel found, clickhunter will treat all non-opaque pixels as positive matches\n", target.name);
+        fprintf(stderr, "%s: alpha-channel found, screenhunter will treat all non-opaque pixels as positive matches\n", target.name);
     } else {
         fprintf(stderr, "%s: color type of input file must be PNG_COLOR_TYPE_RGB (%d)"
                 " or PNG_COLOR_TYPE_RGBA (%d)"
