@@ -10,6 +10,7 @@
 #define PNG_DEBUG 3
 #include <png.h>
 
+
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
@@ -18,13 +19,21 @@ typedef unsigned short ushort;
 typedef struct {
     char *name;       /* base file name */
     ushort colors;    /* colors per pixel */
-    uint32_t width;   /* width in pixels */
-    uint32_t height;  /* height in pixels */
+    uint width;       /* width in pixels */
+    uint height;      /* height in pixels */
     png_byte type;    /* png color type */
     png_infop info;   /* png info struct*/
     png_bytep *rows;  /* png row pointers */
     png_structp png;  /* png struct pointer */
 } Target;
+
+
+/* Default options' values */
+char optDontClick = 0;
+char optOneMatch = 0;
+char optHoldCursor = 0;
+char optRandom = 0;
+
 
 void msleep(int milliseconds)
 {
@@ -34,6 +43,22 @@ void msleep(int milliseconds)
     ts.tv_nsec = (milliseconds % 1000) * 1000000;
 
     nanosleep(&ts, NULL);
+}
+
+int randr(int min, int max)
+{
+    return rand() % (max + 1 - min) + min;
+}
+
+void aim(Display *display, Window *window, uint x1, uint y1, uint x2, uint y2)
+{
+    if (optRandom) { /* random point within the matching zone */
+        XWarpPointer(display, None, *window, 0, 0, 0, 0,
+                     randr(x1, x2), randr(y1, y2));
+    } else { /* center */
+        XWarpPointer(display, None, *window, 0, 0, 0, 0,
+                     x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2);
+    }
 }
 
 void click(Display *display, Window *window, int button)
@@ -65,7 +90,7 @@ void click(Display *display, Window *window, int button)
     }
     XFlush(display);
 
-    msleep(10);
+    msleep((optRandom) ? randr(9, 59) : 10);
 
     event.type = ButtonRelease;
     event.xbutton.state = 0x100;
@@ -220,9 +245,16 @@ char seekandclick(char *file_name, Display *display, Window window, XImage *scre
                             so_far_so_good++;
 
                             if (so_far_so_good == target_amount_of_pixels) {
-                                XWarpPointer(display, None, window, 0, 0, 0, 0, target.width / 2 + x, target.height / 2 + y);
-                                click(display, &window, Button1);
                                 found++;
+
+                                if (!optDontClick) {
+                                    aim(display, &window, x, y, x + target.width, y + target.height);
+                                    click(display, &window, Button1);
+                                }
+
+                                if (optOneMatch) {
+                                    y = screenshot->height - target.height; /* break out of the topmost loop */
+                                }
                             }
                         } else {
                             so_far_so_good = 0;
@@ -233,10 +265,13 @@ char seekandclick(char *file_name, Display *display, Window window, XImage *scre
         }
     }
 
-    /* Return the cursor to its original position if it has been moved */
     if (found) {
-        XWarpPointer(display, None, window, 0, 0, 0, 0, root_x, root_y);
         res = 1;
+
+        if (!optDontClick && !optHoldCursor) {
+            /* Return cursor to its original position */
+            aim(display, &window, root_x, root_y, root_x, root_y);
+        }
     }
 
     /* Clean-up */
@@ -254,45 +289,59 @@ exit:
 
 int main(int argc, char **argv)
 {
-    char ret = 0;
     char res = 0;
-
-    if (argc < 2) {
-        /* No arguments given */
-        fprintf(stderr, "Usage: %s button.png [icon.png [...]]\n", argv[0]);
-        return -1;
-    }
+    int opt;
 
     Display *display = XOpenDisplay(0);
-    Window window = DefaultRootWindow(display);
-    XWindowAttributes windowAttrs;
-    XImage *screenshot;
 
     if (!display) {
         fprintf(stderr, "Error opening display\n");
-        return -1;
+        res = -1;
+        goto free_display_and_exit;
     }
 
-    XGetWindowAttributes(display, window, &windowAttrs);
+    while ((opt = getopt(argc, argv, "sohr")) != -1)
+    {
+        switch (opt)
+        {
+            case 's': optDontClick = 1; break;
+            case 'o': optOneMatch = 1; break;
+            case 'h': optHoldCursor = 1; break;
+            case 'r': optRandom = 1; break;
 
-    screenshot = XGetImage(display, window, 0, 0,
-                           windowAttrs.width, windowAttrs.height,
-                           AllPlanes, ZPixmap);
-
-    for (int i = 1 ; i < argc ; i++) {
-        ret = seekandclick(argv[i], display, window, screenshot);
-
-        if (ret > 0) {
-            res = 1;
-        } else if (ret < 0) {
-            res = -1;
-            break;
+            default:
+                /* No arguments given */
+                fprintf(stderr, "Usage: %s [-sohr] target.png\n", argv[0]);
+                res = -1;
+                goto free_display_and_exit;
         }
     }
 
+    Window window = DefaultRootWindow(display);
+    XWindowAttributes windowAttrs;
+
+    XGetWindowAttributes(display, window, &windowAttrs);
+
+    XImage *screenshot = XGetImage(display, window, 0, 0,
+                           windowAttrs.width, windowAttrs.height,
+                           AllPlanes, ZPixmap);
+
+    if (optRandom) {
+        srand(time(NULL));
+    }
+
+    //printf("%d (%d)\n", optind, argc);
+    if (optind < argc) {
+        do {
+            res = seekandclick(argv[optind], display, window, screenshot);
+        } while (++optind < argc);
+    }
+
+//free_everything_and_exit:
     XFree(screenshot);
+free_display_and_exit:
     XFlush(display);
     XCloseDisplay(display);
-
+//exit:
     return res;
 }
