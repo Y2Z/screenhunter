@@ -175,7 +175,7 @@ char seekandclick(char *file_name, Display *display, Window window, XImage *scre
     }
 
     if (png_get_bit_depth(target.png, target.info) != 8) {
-        fprintf(stderr, "%s: incorrect bit depth of %d (expected 8)\n", target.name, target.info->bit_depth);
+        fprintf(stderr, "%s: incorrect bit depth of %d (expected 8)\n", target.name, png_get_bit_depth(target.png, target.info));
         res = -1;
         goto exit;
     }
