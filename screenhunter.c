@@ -6,6 +6,7 @@
 #include <libgen.h>
 #include <string.h>
 #include <sys/param.h>
+#include <unistd.h>
 #include <X11/Xlib.h>
 #define PNG_DEBUG 3
 #include <png.h>
