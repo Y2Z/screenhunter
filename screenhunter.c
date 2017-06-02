@@ -91,7 +91,7 @@ void click(Display *display, Window *window, int button)
     }
     XFlush(display);
 
-    msleep((optRandom) ? randr(9, 59) : 10);
+    msleep((optRandom) ? randr(21, 99) : 30);
 
     event.type = ButtonRelease;
     event.xbutton.state = 0x100;
