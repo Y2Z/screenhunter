@@ -11,7 +11,10 @@ Automated cursor positioning and clicking tool for X11.
     sudo make uninstall
 
 ### usage
-    screenhunter -orh button.png
+    screenhunter -or button.png
+
+    win_id=$(wmctrl -l | grep Firefox | awk '/./{line=$0} END{print $1;}')
+    screenhunter -w $win_id button.png
 
 ### how it works
 Takes one PNG file on the input, looks for areas identical to that image on screen and clicks each one of them.
