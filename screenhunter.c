@@ -112,7 +112,7 @@ void click(Display *display, const ushort button)
 }
 
 int seekandclick(char *filename, Display *display,
-                  Window window, XImage *screenshot)
+                  Window window, XImage *snapshot)
 {
     FILE *file_ptr;
     Target target;
@@ -233,65 +233,64 @@ int seekandclick(char *filename, Display *display,
 
 /*
  *
- * 1. loop through window snapshot's pixels, searching for the first pixel of target PNG image
- * 2. if the pixel matches, initiate a new nested loop
- * 3. within that loop we continue scanning the screen's pixels along with the target's
- * 4. if any of the pixels mismatch, we break that loop and it brings us back to #1
+ * 1. we loop through window snapshot's pixels
+ * 2. then we initiate a new nested loop, going through target's pixels
+ * 3. as long as pixels match, we continue looping
+ * 4. if any of the pixels mismatch, we break that loop and go back to 1.
  * 5. if all pixels match, we generate a click within the matching sector
  *
  */
 
-    png_byte *target_row;
-    png_byte *target_pixel;
-    uchar *screenshot_pixel;
+    png_byte *target_row, *target_pixel;
+    uchar *snapshot_pixel;
     uchar target_has_alpha = target.colors - 3;
     ulong target_amount_of_pixels = target.width * target.height;
-    ulong ok = 0;
-    ulong matches = 0;
+    ulong ok, matches = 0;
 
-    for (uint y = 0 ; y < screenshot->height - target.height ; y++) {
-        for (uint x = 0 ; x < screenshot->width - target.width ; x++) {
-            screenshot_pixel = (uchar*)&(screenshot->data[screenshot->bytes_per_line * y + screenshot->bits_per_pixel * x / NBBY]);
+    /* the snapshot loop */
+    for (uint y = 0, ty ; y < snapshot->height - target.height ; y++)
+    {
+        for (uint x = 0, tx ; x < snapshot->width - target.width ; x++)
+        {
+            ok = 0;
 
-            if ((target_has_alpha && (*target.image_data)[3] < 255) ||
-                (screenshot_pixel[2] == (*target.image_data)[0] &&
-                 screenshot_pixel[1] == (*target.image_data)[1] &&
-                 screenshot_pixel[0] == (*target.image_data)[2])
-            ) {
-                ok = 1;
+            /* the target loop */
+            for (ty = 0 ; ty < target.height && (ok || ty == 0) ; ty++)
+            {
+                target_row = target.image_data[ty];
 
-                for (uint ty = 0 ; ty < target.height && ok ; ty++) {
-                    target_row = target.image_data[ty];
+                for (tx = 0 ; tx < target.width && (ok || tx == 0) ; tx++)
+                {
+                    target_pixel = &(target_row[tx * target.colors]);
 
-                    for (uint tx = 0 ; tx < target.width && ok ; tx++) {
-                        target_pixel = &(target_row[tx * target.colors]);
+                    snapshot_pixel = (uchar*)&(snapshot->data[
+                                        snapshot->bytes_per_line * (y+ty) +
+                                        snapshot->bits_per_pixel * (x+tx) / NBBY
+                                     ]);
 
-                        screenshot_pixel = (uchar*)&(screenshot->data[screenshot->bytes_per_line * (y+ty) + screenshot->bits_per_pixel * (x+tx) / NBBY]);
+                    if ((target_has_alpha && target_pixel[3] < 255) ||
+                        (snapshot_pixel[2] == target_pixel[0] &&
+                         snapshot_pixel[1] == target_pixel[1] &&
+                         snapshot_pixel[0] == target_pixel[2])
+                    ) {
+                        ok++;
 
-                        if ((target_has_alpha && target_pixel[3] < 255) ||
-                            (screenshot_pixel[2] == target_pixel[0] &&
-                             screenshot_pixel[1] == target_pixel[1] &&
-                             screenshot_pixel[0] == target_pixel[2])
-                        ) {
-                            ok++;
+                        if (ok == target_amount_of_pixels) {
+                            matches++;
 
-                            if (ok == target_amount_of_pixels) {
-                                matches++;
-
-                                if (!optJustScan) {
-                                    aim(display, &window, x, y,
-                                        x + target.width, y + target.height);
-                                    click(display, Button1);
-                                }
-
-                                if (optOneMatch) {
-                                    /* break out of the topmost loop */
-                                    y = screenshot->height - target.height;
-                                }
+                            if (!optJustScan) {
+                                aim(display, &window, x, y,
+                                    x + target.width, y + target.height);
+                                click(display, Button1);
                             }
-                        } else {
-                            ok = 0;
+
+                            if (optOneMatch) {
+                                /* break out of the topmost loop */
+                                y = snapshot->height - target.height;
+                            }
                         }
+                    } else {
+                        ok = 0;
                     }
                 }
             }
@@ -328,8 +327,7 @@ void print_usage()
 
 int main(int argc, char **argv)
 {
-    int res = 0;
-    int opt;
+    int opt, res = 0;
     ulong w = 0;
 
     progname = basename(argv[0]);
@@ -377,7 +375,7 @@ int main(int argc, char **argv)
     Window window = (w) ? w : DefaultRootWindow(display);
     XWindowAttributes windowAttrs;
     XGetWindowAttributes(display, window, &windowAttrs);
-    XImage *screenshot = XGetImage(display, window, 0, 0,
+    XImage *snapshot = XGetImage(display, window, 0, 0,
                            windowAttrs.width, windowAttrs.height,
                            AllPlanes, ZPixmap);
 
@@ -387,7 +385,7 @@ int main(int argc, char **argv)
 
     if (optind < argc) {
         //do {
-            res = seekandclick(argv[optind], display, window, screenshot);
+            res = seekandclick(argv[optind], display, window, snapshot);
         //} while (++optind < argc);
     } else {
         fprintf(stderr, "%s: input file required\n", progname);
@@ -396,7 +394,7 @@ int main(int argc, char **argv)
     }
 
 //free_everything_and_exit:
-    XFree(screenshot);
+    XFree(snapshot);
 free_display_and_exit:
     XFlush(display);
     XCloseDisplay(display);
