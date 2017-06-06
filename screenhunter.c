@@ -281,7 +281,15 @@ int seekandclick(char *filename, Display *display,
                             if (!optJustScan) {
                                 aim(display, &window, x, y,
                                     x + target.width, y + target.height);
+
+                                /* small delay before the click */
+                                msleep((optRandom) ? randr(99, 399) : 30);
+
+                                /* simulate a left mouse button click */
                                 click(display, Button1);
+
+                                /* small delay after the click */
+                                msleep((optRandom) ? randr(99, 399) : 30);
                             }
 
                             if (optOneMatch) {
