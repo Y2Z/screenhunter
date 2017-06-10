@@ -12,6 +12,7 @@ Automated cursor positioning and clicking tool for X11.
 
 ### usage
     screenhunter -or button.png
+or
 
     win_id=$(wmctrl -l | grep Firefox | awk '/./{line=$0} END{print $1;}')
     screenhunter -w $win_id button.png
