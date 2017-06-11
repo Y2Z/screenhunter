@@ -306,7 +306,7 @@ int seekandclick(char *filename, Display *display,
     }
 
     if (matches) {
-        res = 1;
+        res = matches;
         if (!optJustScan && !optKeepPosition) {
             /* Return cursor to its original position */
             aim(display, &window, win_x, win_y, win_x, win_y);
@@ -335,7 +335,7 @@ void print_usage()
 
 int main(int argc, char **argv)
 {
-    int opt, res = 0;
+    int opt, ret, res = 0;
     ulong w = 0;
 
     progname = basename(argv[0]);
@@ -392,9 +392,12 @@ int main(int argc, char **argv)
     }
 
     if (optind < argc) {
-        //do {
-            res = seekandclick(argv[optind], display, window, snapshot);
-        //} while (++optind < argc);
+        do {
+            ret = seekandclick(argv[optind], display, window, snapshot);
+            if (ret > 0) {
+                res += ret;
+            }
+        } while (++optind < argc);
     } else {
         fprintf(stderr, "%s: input file required\n", progname);
         print_usage();
