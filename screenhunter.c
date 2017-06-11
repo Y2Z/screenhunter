@@ -327,7 +327,7 @@ void print_usage()
 
 int main(int argc, char **argv)
 {
-    int opt, ret, res;
+    int opt, ret, res = EXIT_FAILURE;
     ulong win_id = 0;
     int root_x, root_y, win_x, win_y;
     uint mask;
@@ -338,7 +338,6 @@ int main(int argc, char **argv)
     if (argc < 2) {
         fprintf(stderr, "%s: missing file operand\n", progname);
         printf("Try '%s -h' for more information.\n", progname);
-        res = EXIT_FAILURE;
         goto exit;
     }
 
@@ -356,12 +355,10 @@ int main(int argc, char **argv)
 
             case 'h':
                 print_usage();
-                res = EXIT_FAILURE;
                 goto exit;
 
             case '?':
                 printf("Try '%s -h' for more information.\n", progname);
-                res = EXIT_FAILURE;
                 goto exit;
         }
     }
@@ -370,7 +367,6 @@ int main(int argc, char **argv)
 
     if (!display) {
         fprintf(stderr, "%s: unable to open display :%d\n", progname, 0);
-        res = EXIT_FAILURE;
         goto free_display_and_exit;
     }
 
@@ -419,7 +415,6 @@ int main(int argc, char **argv)
     } else {
         fprintf(stderr, "%s: input file required\n", progname);
         print_usage();
-        res = EXIT_FAILURE;
     }
 
 //free_everything_and_exit:
