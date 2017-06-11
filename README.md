@@ -18,7 +18,7 @@ or
     screenhunter -w $win_id button.png
 
 ### how it works
-Takes one PNG file on the input, looks for areas identical to that image on screen and clicks each one of them.
+Takes one or multiple PNG files on the input, looks for areas matching those images on display and clicks each one of them.
 
 ### notes
 Please keep in mind that certain applications (mostly web browsers) have a mechanism to prevent such an automation for security reasons.
