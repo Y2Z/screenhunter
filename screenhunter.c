@@ -392,7 +392,6 @@ int main(int argc, char **argv)
 
     if (optind < argc) {
         do {
-            printf("%s\n", argv[optind]);
             ret = seekandclick(argv[optind], display, window, snapshot);
 
             /* Set status to failure if unable to read any of target images */
