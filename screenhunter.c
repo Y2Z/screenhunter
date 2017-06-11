@@ -117,9 +117,6 @@ int seekandclick(char *filename, Display *display,
     FILE *file_ptr;
     Target target;
     uchar header[8];
-    Window root, child;
-    int root_x, root_y, win_x, win_y;
-    uint mask;
     int res = 0;
 
     target.filename = basename(filename);
@@ -227,10 +224,6 @@ int seekandclick(char *filename, Display *display,
 
     png_read_image(target.png_ptr, target.image_data);
 
-    /* Get current cursor position */
-    XQueryPointer(display, window, &root, &child,
-                  &root_x, &root_y, &win_x, &win_y, &mask);
-
 /*
  *
  * 1. we loop through window snapshot's pixels
@@ -307,10 +300,6 @@ int seekandclick(char *filename, Display *display,
 
     if (matches) {
         res = matches;
-        if (!optJustScan && !optKeepPosition) {
-            /* Return cursor to its original position */
-            aim(display, &window, win_x, win_y, win_x, win_y);
-        }
     }
 
 free_image_data_and_exit:
@@ -329,21 +318,24 @@ exit:
 void print_usage()
 {
     fprintf(stderr,
-            "Usage: %s [-hvsokr] [-w <window_id>] target_image.png\n",
+            "Usage: %s [-hvsokr] [-w <window_id>] target1.png [target2.png]\n",
             progname);
 }
 
 int main(int argc, char **argv)
 {
-    int opt, ret, res = 0;
-    ulong w = 0;
+    int opt, ret, res;
+    ulong win_id = 0;
+    int root_x, root_y, win_x, win_y;
+    uint mask;
+    char cursorMoved = 0;
 
-    progname = basename(argv[0]);
+    progname = argv[0];
 
     if (argc < 2) {
-        fprintf(stderr, "%s: input file required\n", progname);
-        print_usage();
-        res = -1;
+        fprintf(stderr, "%s: missing file operand\n", progname);
+        printf("Try '%s -h' for more information.\n", progname);
+        res = EXIT_FAILURE;
         goto exit;
     }
 
@@ -356,18 +348,16 @@ int main(int argc, char **argv)
             case 'o': optOneMatch++; break;
             case 'k': optKeepPosition++; break;
             case 'r': optRandom++; break;
-            case 'w': w = (unsigned)strtol(optarg, NULL, 0); break;
+            case 'w': win_id = (unsigned)strtol(optarg, NULL, 0); break;
 
             case 'h':
                 print_usage();
-                res = 0;
+                res = EXIT_FAILURE;
                 goto exit;
 
             case '?':
-                fprintf(stderr, "%s: Unrecognized option: -%c\n",
-                        progname, optopt);
-                print_usage();
-                res = -1;
+                printf("Try '%s -h' for more information.\n", progname);
+                res = EXIT_FAILURE;
                 goto exit;
         }
     }
@@ -376,16 +366,21 @@ int main(int argc, char **argv)
 
     if (!display) {
         fprintf(stderr, "%s: unable to open display :%d\n", progname, 0);
-        res = -1;
+        res = EXIT_FAILURE;
         goto free_display_and_exit;
     }
 
-    Window window = (w) ? w : DefaultRootWindow(display);
+    Window window = (win_id) ? win_id : DefaultRootWindow(display);
+    Window root, child;
     XWindowAttributes windowAttrs;
     XGetWindowAttributes(display, window, &windowAttrs);
     XImage *snapshot = XGetImage(display, window, 0, 0,
                            windowAttrs.width, windowAttrs.height,
                            AllPlanes, ZPixmap);
+
+    /* Remember the initial cursor position */
+    XQueryPointer(display, window, &root, &child,
+                  &root_x, &root_y, &win_x, &win_y, &mask);
 
     if (optRandom) {
         srand(time(NULL));
@@ -393,15 +388,35 @@ int main(int argc, char **argv)
 
     if (optind < argc) {
         do {
+            printf("%s\n", argv[optind]);
             ret = seekandclick(argv[optind], display, window, snapshot);
-            if (ret > 0) {
-                res += ret;
+
+            /* Set status to failure if unable to read any of target images */
+            if (ret < 0) {
+                res = EXIT_FAILURE;
+                break;
+            } else if (ret > 0) {
+                res = EXIT_SUCCESS;
+
+                if (!optJustScan) {
+                    cursorMoved = 1;
+                }
+
+                if (optOneMatch) {
+                    /* Do not proceed with the rest of target files (if any) */
+                    break;
+                }
             }
         } while (++optind < argc);
+
+        if (cursorMoved && !optKeepPosition) {
+            /* Return cursor to its original position */
+            aim(display, &window, win_x, win_y, win_x, win_y);
+        }
     } else {
         fprintf(stderr, "%s: input file required\n", progname);
         print_usage();
-        res = -1;
+        res = EXIT_FAILURE;
     }
 
 //free_everything_and_exit:
