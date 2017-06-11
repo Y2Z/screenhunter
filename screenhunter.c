@@ -33,11 +33,12 @@ typedef struct {
 const char *progname;
 
 /* Default options' values */
-char optJustScan = 0;
-char optOneMatch = 0;
-char optKeepPosition = 0;
-char optRandom = 0;
-char optVerbose = 0;
+uchar optJustScan = 0;
+uchar optOneMatch = 0;
+uchar optKeepPosition = 0;
+uchar optRandom = 0;
+uchar optVerbose = 0;
+uchar optClicksPerMatch = 1;
 
 
 void msleep(const uint milliseconds)
@@ -279,7 +280,9 @@ int seekandclick(char *filename, Display *display,
                                 msleep((optRandom) ? randr(99, 399) : 30);
 
                                 /* simulate a left mouse button click */
-                                click(display, Button1);
+                                for (uchar c = optClicksPerMatch ; c ; c--) {
+                                    click(display, Button1);
+                                }
 
                                 /* small delay after the click */
                                 msleep((optRandom) ? randr(99, 399) : 30);
@@ -318,7 +321,7 @@ exit:
 void print_usage()
 {
     fprintf(stderr,
-            "Usage: %s [-hvsokr] [-w <window_id>] target1.png [target2.png]\n",
+            "Usage: %s [-hvsokrc] [-w <window_id>] target1.png [target2.png]\n",
             progname);
 }
 
@@ -339,7 +342,7 @@ int main(int argc, char **argv)
         goto exit;
     }
 
-    while ((opt = getopt(argc, argv, "hvsokrw:")) != -1)
+    while ((opt = getopt(argc, argv, "hvsokrw:c:")) != -1)
     {
         switch (opt)
         {
@@ -349,6 +352,7 @@ int main(int argc, char **argv)
             case 'k': optKeepPosition++; break;
             case 'r': optRandom++; break;
             case 'w': win_id = (unsigned)strtol(optarg, NULL, 0); break;
+            case 'c': optClicksPerMatch = (unsigned)atoi(optarg); break;
 
             case 'h':
                 print_usage();
