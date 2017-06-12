@@ -321,7 +321,17 @@ exit:
 void print_usage()
 {
     fprintf(stderr,
-            "Usage: %s [-hvsokrc] [-w <window_id>] target1.png [target2.png]\n",
+"Usage: %s [options] path/to/target1.png [path/to/target2.png [...]]\n"
+"\n"
+"  -s          scan only, do not perform any clicks\n"
+"  -k          do not return the cursor to its original position\n"
+"  -r          randomize delays and coordinates\n"
+"  -o          exit after the first match\n"
+"  -c <count>  set the amount of clicks done per matching area\n"
+"  -w <ID>     target a specific X11 window by its ID\n"
+"  -v          be verbose\n"
+"  -h          display this help message\n"
+"\n\n",
             progname);
 }
 
