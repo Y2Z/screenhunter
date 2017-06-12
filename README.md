@@ -11,11 +11,21 @@ Automated cursor positioning and clicking tool for X11.
     sudo make uninstall
 
 ### usage
-    screenhunter -or button.png
-or
+    Usage: screenhunter [options] path/to/target1.png [path/to/target2.png [...]]
+
+      -s          scan only, do not perform any clicks
+      -k          do not return the cursor to its original position
+      -r          randomize delays and coordinates
+      -o          exit after the first match
+      -c <count>  set the amount of clicks done per matching area
+      -w <ID>     target a specific X11 window by its ID
+      -v          output version information and exit
+      -h          display this help message and exit
+
+### example
 
     win_id=$(wmctrl -l | grep Firefox | awk '/./{line=$0} END{print $1;}')
-    screenhunter -w $win_id button.png
+    screenhunter -w $win_id -o -r -c 2 button.png
 
 ### how it works
 Takes one or multiple PNG files on the input, looks for areas matching those images on display and clicks each one of them.
