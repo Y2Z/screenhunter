@@ -12,6 +12,10 @@
 #include <png.h>
 
 
+#define SCREENHUNTER_VERSION       "0.8.1"
+#define SCREENHUNTER_VERBOSE       0
+
+
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
@@ -30,14 +34,13 @@ typedef struct {
 
 
 /* Executable name */
-const char *progname;
+char *progname;
 
 /* Default options' values */
 uchar optJustScan = 0;
 uchar optOneMatch = 0;
 uchar optKeepPosition = 0;
 uchar optRandom = 0;
-uchar optVerbose = 0;
 uchar optClicksPerMatch = 1;
 
 
@@ -177,7 +180,7 @@ int seekandclick(char *filename, Display *display,
         target.colors = 3;
     } else if (target.color_type == PNG_COLOR_TYPE_RGBA) {
         target.colors = 4;
-        if (optVerbose) {
+        if (SCREENHUNTER_VERBOSE) {
             /* Give a warning about non-opaque pixels */
             fprintf(stderr, "%s: file '%s' has an alpha channel, "
                             "all non-opaque pixels "
@@ -329,8 +332,8 @@ void print_usage()
 "  -o          exit after the first match\n"
 "  -c <count>  set the amount of clicks done per matching area\n"
 "  -w <ID>     target a specific X11 window by its ID\n"
-"  -v          be verbose\n"
-"  -h          display this help message\n"
+"  -v          output version information and exit\n"
+"  -h          display this help message and exit\n"
 "\n\n",
             progname);
 }
@@ -351,18 +354,21 @@ int main(int argc, char **argv)
         goto exit;
     }
 
-    while ((opt = getopt(argc, argv, "hvsokrw:c:")) != -1)
+    while ((opt = getopt(argc, argv, "sokrw:c:vh")) != -1)
     {
         switch (opt)
         {
-            case 'v': optVerbose++; break;
             case 's': optJustScan++; break;
             case 'o': optOneMatch++; break;
             case 'k': optKeepPosition++; break;
             case 'r': optRandom++; break;
+
             case 'w': win_id = (unsigned)strtol(optarg, NULL, 0); break;
             case 'c': optClicksPerMatch = (unsigned)atoi(optarg); break;
 
+            case 'v':
+                printf("%s %s\n", basename(progname), SCREENHUNTER_VERSION);
+                goto exit;
             case 'h':
                 print_usage();
                 goto exit;
