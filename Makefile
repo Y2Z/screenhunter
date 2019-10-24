@@ -4,25 +4,27 @@
 CFLAGS = -std=c99 -s -pedantic -Wall -Wextra -Wfatal-errors -pedantic-errors -O3 -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200809L
 CC     = gcc $(CFLAGS)
 
-LIBS = -lX11 -lpng
+LIBS = -lX11 -lpng -lXtst
 PROG = screenhunter
 
 all: $(PROG)
+.PHONY: all
 
 $(PROG):
-	    $(CC) -o $(PROG) $(PROG).c $(LIBS)
+	$(CC) -o $(PROG) $(PROG).c $(LIBS)
 
 clean:
-	    rm -f $(PROG)
+	rm -f $(PROG)
+.PHONY: clean
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f $(PROG) ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/$(PROG)
+.PHONY: install
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/$(PROG)
-
-.PHONY: all clean install uninstall
+.PHONY: uninstall
