@@ -10,11 +10,10 @@
 #include <X11/Xlib.h>
 #define PNG_DEBUG 3
 #include <png.h>
+#include <X11/extensions/XTest.h>
 
-
-#define SCREENHUNTER_VERSION       "0.8.1"
-#define SCREENHUNTER_VERBOSE       0
-
+#define SCREENHUNTER_VERSION "0.8.2"
+#define SCREENHUNTER_VERBOSE 0
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
@@ -36,13 +35,12 @@ typedef struct {
 /* Executable name */
 char *progname;
 
-/* Default options' values */
+/* Default option values */
 uchar optJustScan = 0;
 uchar optOneMatch = 0;
 uchar optKeepPosition = 0;
 uchar optRandom = 0;
 uchar optClicksPerMatch = 1;
-
 
 void msleep(const uint milliseconds)
 {
@@ -68,54 +66,18 @@ void aim(Display *display, Window *window, uint x1, uint y1, uint x2, uint y2)
         XWarpPointer(display, None, *window, 0, 0, 0, 0,
                      x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2);
     }
+
+    XFlush(display);
 }
 
 void click(Display *display, const ushort button)
 {
-    XEvent event;
-
-    /* The click has to go from the root window */
-    Window window = DefaultRootWindow(display);
-
-    memset(&event, 0, sizeof(event));
-
-    event.type = ButtonPress;
-    event.xbutton.button = button;
-    event.xbutton.same_screen = True;
-
-    XQueryPointer(display, window, &event.xbutton.root, &event.xbutton.window,
-                  &event.xbutton.x_root, &event.xbutton.y_root,
-                  &event.xbutton.x, &event.xbutton.y, &event.xbutton.state);
-
-    event.xbutton.subwindow = event.xbutton.window;
-
-    while (event.xbutton.subwindow) {
-        event.xbutton.window = event.xbutton.subwindow;
-        XQueryPointer(display, event.xbutton.window, &event.xbutton.root,
-                      &event.xbutton.subwindow, &event.xbutton.x_root,
-                      &event.xbutton.y_root, &event.xbutton.x,
-                      &event.xbutton.y, &event.xbutton.state);
-    }
-
-    if (XSendEvent(display, PointerWindow, True, 0xfff, &event) == 0) {
-        fprintf(stderr, "%s: mousedown\n", progname);
-    }
-
-    XFlush(display);
-
-    msleep((optRandom) ? randr(21, 99) : 30);
-
-    event.type = ButtonRelease;
-    event.xbutton.state = 0x100;
-
-    if (XSendEvent(display, PointerWindow, True, 0xfff, &event) == 0) {
-        fprintf(stderr, "%s: mouseup\n", progname);
-    }
-
-    XFlush(display);
+    XTestFakeButtonEvent (display, button, True, CurrentTime);
+    msleep((optRandom) ? randr(221, 299) : 230);
+    XTestFakeButtonEvent (display, button, False, CurrentTime);
 }
 
-int seekandclick(char *filename, Display *display,
+int seek_and_click(char *filename, Display *display,
                   Window window, XImage *snapshot)
 {
     FILE *file_ptr;
@@ -404,7 +366,7 @@ int main(int argc, char **argv)
 
     if (optind < argc) {
         do {
-            ret = seekandclick(argv[optind], display, window, snapshot);
+            ret = seek_and_click(argv[optind], display, window, snapshot);
 
             /* Set status to failure if unable to read any of target images */
             if (ret < 0) {
